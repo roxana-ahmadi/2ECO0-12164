@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 export default function Header() {
-  const listHeader = ["Home", "Posts", "Contact"];
+  const listHeader = ["Home", "Posts", "Shop"];
 
   return (
     <div dir="rtl" className="bg-yellow-600 py-4 px-4">
