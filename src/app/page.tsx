@@ -1,113 +1,462 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useForm, SubmitHandler, Controller } from "react-hook-form";
+import {
+  CircularProgress,
+  FormControlLabel,
+  FormGroup,
+  Switch,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@mui/material";
+import { useState } from "react";
+import { IBanks, IFormInputs } from "./types";
+import Link from "next/link";
+
+const commaSeprator = (x: number | undefined): string | undefined => {
+  return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+const numberRegex = new RegExp("^09[0|1|2|3][0-9]{8}$");
+
+export default function ShopPage() {
+  const [showBank, setShowBank] = useState(false);
+  const [disableForm, setDisableForm] = useState(false);
+  const [banks, setBanks] = useState<IBanks[]>();
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    control,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<IFormInputs>({
+    defaultValues: {
+      simType: "credit",
+      optionalPrice: "20000",
+      price: "20000",
+    },
+  });
+
+  const { number, simType, incredible, price, optionalPrice, email } = watch();
+
+  const finalPriceCalculator = (): number | undefined => {
+    if (price && price !== "other") {
+      return +price * 0.1 + +price;
+    } else if (optionalPrice) {
+      return +optionalPrice * 0.1 + +optionalPrice;
+    } else return 0;
+  };
+
+  const onSubmit: SubmitHandler<IFormInputs> = async (): Promise<
+    IBanks[] | void
+  > => {
+    setShowBank(true);
+    setDisableForm(true);
+
+    try {
+      const result = await new Promise<IBanks[]>((resolve) =>
+        setTimeout(
+          () =>
+            resolve([
+              { name: "پارسیان", url: "" },
+              { name: "ملت", url: "" },
+            ]),
+          2000
+        )
+      );
+      setBanks(result);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="flex justify-center">
+      <div className="p-4 lg:p-11 w-full lg:w-2/3 shadow-2xl bg-white rounded-md ">
+        <div className="flex flex-col lg:flex-row">
+          <div className="text-black lg:w-2/3 w-full flex flex-col items-center gap-2 p-3">
+            <h1 className="font-bold text-lg">خرید آنلاین شارژ ایرانسل</h1>
+            <form
+              noValidate
+              onSubmit={handleSubmit(onSubmit)}
+              className="flex flex-col gap-8 rounded w-full items-center lg:max-w-[700px] mb-10 mx-auto space-y-2"
+            >
+              <p className="flex justify-center text-gray-500 text-lg">
+                نوع سیمکارت
+              </p>
+              <Controller
+                name="simType"
+                control={control}
+                render={({ field }) => {
+                  return (
+                    <ToggleButtonGroup
+                      disabled={disableForm}
+                      dir="ltr"
+                      className="justify-center"
+                      {...field}
+                      onChange={(
+                        event: React.MouseEvent<HTMLElement>,
+                        value: string
+                      ) => {
+                        setValue(field.name, value);
+                      }}
+                      exclusive
+                    >
+                      <ToggleButton
+                        sx={[
+                          {
+                            "&.Mui-selected, &.Mui-selected:hover": {
+                              backgroundColor: "#fc0",
+                            },
+                          },
+                        ]}
+                        className="w-24 rounded-full font-bold"
+                        value="credit"
+                      >
+                        اعتباری
+                      </ToggleButton>
+                      <ToggleButton
+                        sx={[
+                          {
+                            "&.Mui-selected, &.Mui-selected:hover": {
+                              backgroundColor: "#fc0",
+                            },
+                          },
+                        ]}
+                        className="w-24 rounded-full font-bold"
+                        value="permanent"
+                      >
+                        دائمی
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  );
+                }}
+              />
+
+              <Controller
+                name="incredible"
+                control={control}
+                render={({ field }) => (
+                  <FormGroup>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          {...field}
+                          disabled={
+                            disableForm || watch("simType") !== "credit"
+                          }
+                        />
+                      }
+                      label="شارژ شگفت انگیز"
+                    />
+                  </FormGroup>
+                )}
+              />
+
+              <input
+                disabled={disableForm}
+                {...register("number", {
+                  required: true,
+                  validate: (fieldValue) => {
+                    return !!fieldValue.match(numberRegex)?.length;
+                  },
+                })}
+                type="number"
+                name="number"
+                onWheelCapture={(e) => {
+                  e.currentTarget.blur();
+                }}
+                placeholder="شماره تلفن همراه"
+                className={`border rounded-full h-14 w-full lg:w-96 px-3 text-black ${
+                  errors.number && "border-red-600"
+                }`}
+              />
+
+              <label>مبلغ شارژ</label>
+
+              <Controller
+                disabled={disableForm}
+                name="price"
+                control={control}
+                render={({ field }) => {
+                  return (
+                    <ToggleButtonGroup
+                      dir="ltr"
+                      className="justify-center"
+                      {...field}
+                      onChange={(
+                        event: React.MouseEvent<HTMLElement>,
+                        value: string
+                      ) => {
+                        setValue(field.name, value);
+                      }}
+                      exclusive
+                      sx={[
+                        {
+                          "&.MuiToggleButtonGroup-root": {
+                            display: "grid",
+                            gridTemplateColumns: "auto auto auto",
+                            gap: "20px",
+                          },
+                        },
+                      ]}
+                    >
+                      <ToggleButton
+                        sx={[
+                          {
+                            "&.Mui-selected, &.Mui-selected:hover": {
+                              backgroundColor: "#fc0",
+                            },
+                          },
+                        ]}
+                        className="w-24 !rounded-full !border-x !border-solid font-bold"
+                        value={"10000"}
+                      >
+                        10,000
+                      </ToggleButton>
+                      <ToggleButton
+                        sx={[
+                          {
+                            "&.Mui-selected, &.Mui-selected:hover": {
+                              backgroundColor: "#fc0",
+                            },
+                          },
+                        ]}
+                        className="w-24 !rounded-full !border-x  font-bold"
+                        value={"20000"}
+                      >
+                        20,000
+                      </ToggleButton>
+                      <ToggleButton
+                        sx={[
+                          {
+                            "&.Mui-selected, &.Mui-selected:hover": {
+                              backgroundColor: "#fc0",
+                            },
+                          },
+                        ]}
+                        className="w-24 !rounded-full !border-x font-bold"
+                        value={"50000"}
+                      >
+                        50,000
+                      </ToggleButton>
+                      <ToggleButton
+                        sx={[
+                          {
+                            "&.Mui-selected, &.Mui-selected:hover": {
+                              backgroundColor: "#fc0",
+                            },
+                          },
+                        ]}
+                        className="w-24 !rounded-full !border-x font-bold"
+                        value={"100000"}
+                      >
+                        100,000
+                      </ToggleButton>
+                      <ToggleButton
+                        sx={[
+                          {
+                            "&.Mui-selected, &.Mui-selected:hover": {
+                              backgroundColor: "#fc0",
+                            },
+                          },
+                        ]}
+                        className="w-24 !rounded-full !border-x font-bold"
+                        value={"200000"}
+                      >
+                        200,000
+                      </ToggleButton>
+                      <ToggleButton
+                        sx={[
+                          {
+                            "&.Mui-selected, &.Mui-selected:hover": {
+                              backgroundColor: "#fc0",
+                            },
+                          },
+                        ]}
+                        className="w-24 !rounded-full !border-x font-bold"
+                        value={"other"}
+                      >
+                        سایر مبالغ
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  );
+                }}
+              />
+
+              {watch("price") === "other" && (
+                <div>
+                  <input
+                    disabled={disableForm}
+                    {...register("optionalPrice", {
+                      required: true,
+                      max: 900000,
+                      min: 10000,
+                    })}
+                    type="number"
+                    name="optionalPrice"
+                    placeholder="مبلغ شارژ به ریال"
+                    className={`border h-14 rounded-full w-full lg:w-96 px-3 text-black ${
+                      errors.optionalPrice && "border-red-600"
+                    }`}
+                  />
+                  <div
+                    className={`flex justify-center text-sm mt-2 text-gray-500 ${
+                      errors.optionalPrice &&
+                      " border-solid border border-red-600  bg-red-300 text-red-950 rounded-full"
+                    }`}
+                  >
+                    حداقل 10,000ریال و حداکثر 900,000ریال
+                  </div>
+                </div>
+              )}
+
+              <input
+                disabled={disableForm}
+                {...register("email", {
+                  pattern: {
+                    value: /\S+@\S+\.\S+/,
+                    message: "",
+                  },
+                })}
+                type="email"
+                name="email"
+                placeholder="ایمیل(اختیاری)"
+                className={`border h-14 rounded-full w-full lg:w-96 px-3 text-black ${
+                  errors.email && "border-red-600"
+                }`}
+              />
+
+              {!showBank && (
+                <button
+                  className="border rounded-full h-14 font-bold w-full lg:w-96 bg-[#fc0]"
+                  type="submit"
+                >
+                  انتخاب بانک و پرداخت
+                </button>
+              )}
+            </form>
+            {showBank && (
+              <>
+                {banks && (
+                  <div className="flex p-8 gap-6 bg-gray-200 w-80 h-40">
+                    <div className="flex-grow">انتخاب بانک</div>
+                    {banks.map((item, index) => (
+                      <div key={index}>
+                        <Link href={item.url}>{item.name}</Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  className="border rounded-full h-14 font-bold w-full lg:w-96 bg-[#fc0]"
+                  type="submit"
+                >
+                  {isSubmitting ? (
+                    <CircularProgress color="inherit" />
+                  ) : (
+                    "پرداخت و شارژ"
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setDisableForm(false);
+                    setShowBank(false);
+                  }}
+                  className="border-none text-blue-800 font-bold"
+                >
+                  انصراف
+                </button>
+              </>
+            )}
+          </div>
+          <div className="text-black hidden lg:flex lg:w-1/3 w-full bg-gray-200 rounded-md flex-col gap-6 p-3">
+            <div
+              className="bg-white w-full flex justify-center rounded-md p-4 text-lg font-bold
+            "
+            >
+              فاکتور نهایی
+            </div>
+            <div className="mr-6">
+              <div className="text-gray-500 text-sm">نوع سیمکارت</div>
+              <div className="my-2 font-bold">
+                {simType === "credit" ? "اعتباری" : "دائمی"}
+              </div>
+            </div>
+            <div className="mr-6">
+              <div className="text-gray-500 text-sm">مستقیم به شماره</div>
+              <div className="my-2 font-bold">{number || " --- "}</div>
+            </div>
+            <div className="mr-6">
+              <div className="text-gray-500 text-sm">
+                مبلغ شارژ (با احتساب مالیات بر ارزش افزوده)
+              </div>
+              <div className="my-2 font-bold">
+                {commaSeprator(finalPriceCalculator())} ریال{" "}
+              </div>
+            </div>
+            <div className="mr-6">
+              <div className="text-gray-500 text-sm">نوع شارژ </div>
+              <div className="my-2 font-bold">
+                {incredible ? "شگفت انگیز" : "معمولی"}
+              </div>
+            </div>
+            <div className="mr-6">
+              <div className="text-gray-500 text-sm">ایمیل</div>
+              <div className="my-2 font-bold">{email || " --- "}</div>
+            </div>
+            <div className="mr-6">
+              <div className="text-gray-500 text-sm">نام بانک</div>
+              <div className="my-2 font-bold">{email || " --- "}</div>
+            </div>
+          </div>
+          <div className="text-black lg:hidden flex  w-full bg-[#fff5cc] border-[#ffd733] text-sm rounded-md flex-col p-3">
+            <div className="mb-2 flex">
+              <div className="text-gray-500 text-sm flex-1">نوع سیمکارت</div>
+              <div className="font-bold text-end flex-1">
+                {simType === "credit" ? "اعتباری" : "دائمی"}
+              </div>
+            </div>
+            <div className="mb-2 flex">
+              <div className="text-gray-500 text-sm flex-1">
+                مستقیم به شماره
+              </div>
+              <div className="font-bold text-end flex-1">
+                {number || " --- "}
+              </div>
+            </div>
+            <div className="mb-2 flex">
+              <div className="text-gray-500 text-sm flex-1">
+                مبلغ شارژ (+مالیات)
+              </div>
+              <div className="font-bold text-end flex-1">
+                {commaSeprator(finalPriceCalculator())} ریال{" "}
+              </div>
+            </div>
+            <div className="mb-2 flex">
+              <div className="text-gray-500 text-sm flex-1">نوع شارژ </div>
+              <div className="font-bold text-end flex-1">
+                {incredible ? "شگفت انگیز" : "معمولی"}
+              </div>
+            </div>
+            <div className="mb-2 flex">
+              <div className="text-gray-500 text-sm flex-1">ایمیل</div>
+              <div className="font-bold text-end flex-1">
+                {email || " --- "}
+              </div>
+            </div>
+            <div className="mb-2 flex">
+              <div className="text-gray-500 text-sm flex-1">نام بانک</div>
+              <div className="font-bold text-end flex-1">
+                {email || " --- "}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }
